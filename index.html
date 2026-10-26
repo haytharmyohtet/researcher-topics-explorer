@@ -23,6 +23,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* Power BI Treemap Tile Styling */
+        .pbi-treemap-tile {
+            position: absolute;
+            box-sizing: border-box;
+            border: 2px solid #ffffff;
+            border-radius: 6px;
+            padding: 5px 6px;
+            color: #ffffff;
+            font-weight: 600;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            word-break: break-word;
+        }
+        .pbi-treemap-tile:hover {
+            transform: scale(1.008);
+            z-index: 10;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25), inset 0 0 20px rgba(255, 255, 255, 0.25);
+        }
+        .pbi-treemap-tile.selected {
+            border: 3px solid #FFC72C !important;
+            z-index: 20;
+            box-shadow: 0 0 0 2px #FA4616, 0 6px 18px rgba(0,0,0,0.3);
+        }
+    </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans relative">
 
@@ -33,157 +74,197 @@
     </div>
 
     <!-- Header & Summary Cards -->
-    <header class="bg-[#FA4616] text-white pt-6 pb-6 px-6 shadow-md border-b-4 border-[#FFC72C]">
+    <header class="bg-[#FA4616] text-white pt-5 pb-5 px-6 shadow-md border-b-4 border-[#FFC72C]">
         <div class="max-w-7xl mx-auto">
-            <!-- Top Header Section with Logos -->
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                <!-- Top-Left Logos and Header Title -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-3 bg-white/10 backdrop-blur p-2 px-3 rounded-xl border border-white/20 shrink-0">
-                        <img src="KMUTT_CI_LOGO.png" alt="KMUTT CI Logo" class="h-10 w-auto object-contain" />
-                        <div class="h-8 w-px bg-white/30"></div>
-                        <img src="logo_short_main.png" alt="Main Logo" class="h-10 w-auto object-contain" />
+                        <img src="KMUTT_CI_LOGO.png" alt="KMUTT Logo" class="h-9 w-auto object-contain" onerror="this.style.display='none'"/>
+                        <div class="h-7 w-px bg-white/30"></div>
+                        <img src="logo_short_main.png" alt="Main Logo" class="h-9 w-auto object-contain" onerror="this.style.display='none'"/>
                     </div>
                     <div>
-                        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-                            Research Topics & Researchers Explorer
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight">
+                            Research Expertise & Topics Explorer
                         </h1>
-                        <p class="text-orange-100 text-xs sm:text-sm mt-0.5">Interactive dashboard for discovering research topics, expert researchers, and academic publications.</p>
+                        <p class="text-orange-100 text-xs mt-0.5">Interactive domain tree map and researcher portfolio matching tool.</p>
                     </div>
                 </div>
+                <button onclick="resetAllFilters()" class="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg border border-white/30 transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset All Filters
+                </button>
             </div>
             
             <!-- Summary Metrics Header -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="metrics-container">
-                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4 flex items-center justify-between shadow-sm">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3" id="metrics-container">
+                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-lg p-3 flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wider text-[#FFC72C] font-semibold">Total Topics</p>
-                        <h2 class="text-2xl font-extrabold text-white mt-1" id="stat-topics">--</h2>
+                        <p class="text-[10px] uppercase tracking-wider text-[#FFC72C] font-semibold">Domains</p>
+                        <h2 class="text-xl font-extrabold text-white mt-0.5" id="stat-domains">--</h2>
                     </div>
-                    <div class="p-3 bg-white/15 rounded-lg text-white">
-                        <i data-lucide="layers" class="w-6 h-6"></i>
-                    </div>
+                    <i data-lucide="layout-grid" class="w-5 h-5 text-white/70"></i>
                 </div>
-
-                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-lg p-3 flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wider text-[#FFC72C] font-semibold">Total Researchers</p>
-                        <h2 class="text-2xl font-extrabold text-white mt-1" id="stat-researchers">--</h2>
+                        <p class="text-[10px] uppercase tracking-wider text-[#FFC72C] font-semibold">Topics</p>
+                        <h2 class="text-xl font-extrabold text-white mt-0.5" id="stat-topics">--</h2>
                     </div>
-                    <div class="p-3 bg-white/15 rounded-lg text-white">
-                        <i data-lucide="users" class="w-6 h-6"></i>
-                    </div>
+                    <i data-lucide="layers" class="w-5 h-5 text-white/70"></i>
                 </div>
-
-                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-lg p-3 flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wider text-[#FFC72C] font-semibold">Total Papers</p>
-                        <h2 class="text-2xl font-extrabold text-white mt-1" id="stat-papers">--</h2>
+                        <p class="text-[10px] uppercase tracking-wider text-[#FFC72C] font-semibold">Researchers</p>
+                        <h2 class="text-xl font-extrabold text-white mt-0.5" id="stat-researchers">--</h2>
                     </div>
-                    <div class="p-3 bg-white/15 rounded-lg text-white">
-                        <i data-lucide="file-text" class="w-6 h-6"></i>
-                    </div>
+                    <i data-lucide="users" class="w-5 h-5 text-white/70"></i>
                 </div>
-
-                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-lg p-3 flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-wider text-[#FFC72C] font-semibold">Total Citations</p>
-                        <h2 class="text-2xl font-extrabold text-white mt-1" id="stat-citations">--</h2>
+                        <p class="text-[10px] uppercase tracking-wider text-[#FFC72C] font-semibold">Papers</p>
+                        <h2 class="text-xl font-extrabold text-white mt-0.5" id="stat-papers">--</h2>
                     </div>
-                    <div class="p-3 bg-white/15 rounded-lg text-white">
-                        <i data-lucide="quote" class="w-6 h-6"></i>
+                    <i data-lucide="file-text" class="w-5 h-5 text-white/70"></i>
+                </div>
+                <div class="bg-white/10 backdrop-blur border border-white/20 rounded-lg p-3 flex items-center justify-between col-span-2 lg:col-span-1">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-[#FFC72C] font-semibold">Citations</p>
+                        <h2 class="text-xl font-extrabold text-white mt-0.5" id="stat-citations">--</h2>
                     </div>
+                    <i data-lucide="quote" class="w-5 h-5 text-white/70"></i>
                 </div>
             </div>
         </div>
     </header>
 
     <!-- Main Container -->
-    <main class="max-w-7xl mx-auto w-full flex-grow p-6 flex flex-col gap-6">
+    <main class="max-w-7xl mx-auto w-full flex-grow p-4 md:p-6 flex flex-col gap-6">
 
-        <!-- 3-Column Layout -->
+        <!-- TOP SECTION: Power BI Style Treemap & Compact Summary -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left: Expanded Power BI Treemap Container (9 Columns / 75% width) -->
+            <div class="lg:col-span-9 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm p-4 flex flex-col">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="boxes" class="w-5 h-5 text-[#FA4616]"></i>
+                        <h2 class="text-base font-bold text-slate-800">Top Expertise Areas</h2>
+                    </div>
+                    <span class="text-xs text-[#7B8189]">Click an expertise tile to filter topics & researchers</span>
+                </div>
+                <!-- Power BI Canvas Container -->
+                <div id="treemap-container" class="relative w-full h-[480px] bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                    <div class="flex items-center justify-center h-full text-slate-400 text-sm">Loading Expertise Map...</div>
+                </div>
+            </div>
+
+            <!-- Right: Slimmed Summary Card (3 Columns / 25% width) -->
+            <div class="lg:col-span-3 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm p-4 flex flex-col justify-between" id="expertise-summary-card">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                        <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                            <i data-lucide="info" class="w-3.5 h-3.5 text-[#FA4616]"></i> Domain Summary
+                        </h3>
+                        <span id="domain-badge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">All Domains</span>
+                    </div>
+                    <h4 id="domain-summary-title" class="text-base font-bold text-[#FA4616] mb-2 leading-tight">Select Expertise Area</h4>
+                    <p id="domain-summary-body" class="text-[11px] text-slate-500 italic leading-relaxed">
+                        Selecting an expertise domain will filter the topic lists, researchers, and publications below.
+                    </p>
+                </div>
+                
+                <div id="domain-stats-box" class="mt-4 pt-2 border-t border-slate-100 grid grid-cols-1 gap-2 text-center bg-slate-50 p-2 rounded-lg hidden">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-[10px] text-[#7B8189] font-medium">Topics:</span>
+                        <span class="text-xs font-bold text-slate-800" id="domain-topic-count">0</span>
+                    </div>
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-[10px] text-[#7B8189] font-medium">Papers:</span>
+                        <span class="text-xs font-bold text-[#FA4616]" id="domain-paper-count">0</span>
+                    </div>
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-[10px] text-[#7B8189] font-medium">Researchers:</span>
+                        <span class="text-xs font-bold text-slate-800" id="domain-res-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MIDDLE SECTION: 3-Column Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Column 1: Topics List -->
-            <section class="lg:col-span-4 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm flex flex-col h-[650px] overflow-hidden">
-                <div class="p-4 border-b border-[#7B8189]/20 bg-slate-50/50">
-                    <h2 class="text-lg font-bold text-slate-800 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i data-lucide="bookmark" class="w-5 h-5 text-[#FA4616]"></i> Topics</span>
-                        <span class="text-xs font-normal text-[#7B8189]" id="topic-count-badge">0 topics</span>
-                    </h2>
-                    <div class="mt-3 relative">
-                        <input type="text" id="topic-search" placeholder="Search topics or keywords..." 
-                            class="w-full pl-9 pr-4 py-2 text-sm bg-white border border-[#7B8189]/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FA4616] focus:border-[#FA4616]">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-[#7B8189]"></i>
-                    </div>
-                </div>
-                <div class="flex-grow overflow-y-auto divide-y divide-slate-100 p-2" id="topics-list">
-                    <div class="p-8 text-center text-[#7B8189]">Loading topics...</div>
-                </div>
-            </section>
-
-            <!-- Column 2: Researchers List -->
-            <section class="lg:col-span-4 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm flex flex-col h-[650px] overflow-hidden">
-                <div class="p-4 border-b border-[#7B8189]/20 bg-slate-50/50">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-1.5">
-                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <i data-lucide="user-check" class="w-5 h-5 text-[#FA4616]"></i> Researchers
-                            </h2>
-                            <!-- Info Icon Tooltip Explaining Metrics -->
-                            <button onmouseenter="showTooltip(event, 'Metrics Explanation', '<b>Topic Share (%)</b>: Share of this researcher\'s total career publications concentrated in this topic.<br><br><b>Top Expertise #1–5 / Expertise #6+</b>: Order of importance of this topic within the researcher\'s overall career portfolio.')"
-                                    onmouseleave="hideTooltip()" 
-                                    class="text-slate-400 hover:text-[#FA4616] transition cursor-pointer">
-                                <i data-lucide="info" class="w-4 h-4"></i>
+            
+            <!-- Column 1: Topics Related to Expertise -->
+            <section class="lg:col-span-4 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm flex flex-col h-[580px] overflow-hidden">
+                <div class="p-3.5 border-b border-[#7B8189]/20 bg-slate-50/50">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="bookmark" class="w-4 h-4 text-[#FA4616]"></i> Topics
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <button onclick="resetTopicSelection()" title="Reset Topic Filter" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded border border-slate-200 transition flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
                             </button>
+                            <span class="text-xs font-medium text-[#7B8189]" id="topic-count-badge">0 topics</span>
                         </div>
-                        <span class="text-xs font-normal text-[#7B8189]" id="researcher-count-badge">All Researchers</span>
-                    </div>
-                    <div class="flex items-center justify-between mt-1 mb-3">
-                        <p class="text-xs text-[#7B8189] truncate max-w-[200px]" id="selected-topic-title">Global Search Mode</p>
-                        <button id="reset-global-btn" onclick="resetAllFilters()" class="hidden text-xs bg-[#FA4616] text-white px-2 py-0.5 rounded hover:bg-orange-700 transition flex items-center gap-1">
-                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Clear
-                        </button>
                     </div>
                     <div class="relative">
-                        <input type="text" id="researcher-search" placeholder="Search any researcher..." 
-                            class="w-full pl-9 pr-4 py-2 text-sm bg-white border border-[#7B8189]/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FA4616] focus:border-[#FA4616]">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-[#7B8189]"></i>
+                        <input type="text" id="topic-search" placeholder="Search topics..." 
+                            class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#7B8189]/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FA4616]">
+                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-[#7B8189]"></i>
                     </div>
                 </div>
-                <div class="flex-grow overflow-y-auto divide-y divide-slate-100 p-2" id="researchers-list">
-                    <div class="p-8 text-center text-[#7B8189] flex flex-col items-center justify-center h-full gap-2">
-                        <i data-lucide="users" class="w-8 h-8 text-[#7B8189]/50"></i>
-                        <p>Search or click a topic to view researchers</p>
-                    </div>
+                <div class="flex-grow overflow-y-auto custom-scrollbar p-2 divide-y divide-slate-100" id="topics-list">
+                    <div class="p-6 text-center text-xs text-[#7B8189]">Loading topics...</div>
                 </div>
             </section>
 
-            <!-- Column 3: Papers List -->
-            <section class="lg:col-span-4 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm flex flex-col h-[650px] overflow-hidden">
-                <div class="p-4 border-b border-[#7B8189]/20 bg-slate-50/50">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <i data-lucide="book-open" class="w-5 h-5 text-[#FA4616]"></i> Papers
-                        </h2>
-                        <span class="text-xs font-normal text-[#7B8189]" id="paper-count-badge">Select context</span>
+            <!-- Column 2: Researchers in Expertise/Topic -->
+            <section class="lg:col-span-4 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm flex flex-col h-[580px] overflow-hidden">
+                <div class="p-3.5 border-b border-[#7B8189]/20 bg-slate-50/50">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i data-lucide="user-check" class="w-4 h-4 text-[#FA4616]"></i> Researchers
+                            </h2>
+                            <button onmouseenter="showTooltip(event, 'Metrics Explanation', '<b>Topic Share (%)</b>: Concentration of researcher publications in selected topic.<br><br><b>Expertise Rank</b>: Order of topic significance in researcher portfolio.')"
+                                    onmouseleave="hideTooltip()" class="text-slate-400 hover:text-[#FA4616] cursor-pointer">
+                                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="resetResearcherSelection()" title="Reset Researcher Filter" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded border border-slate-200 transition flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
+                            </button>
+                            <span class="text-xs font-medium text-[#7B8189]" id="researcher-count-badge">0 researchers</span>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between mt-1">
-                        <p class="text-xs text-[#7B8189] truncate max-w-[200px]" id="selected-researcher-title">All Papers</p>
-                        <button id="reset-researcher-btn" onclick="clearResearcherFilter()" class="hidden text-xs bg-[#FA4616] text-white px-2 py-0.5 rounded hover:bg-orange-700 transition flex items-center gap-1">
-                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Show All
-                        </button>
+                    <div class="relative">
+                        <input type="text" id="researcher-search" placeholder="Search researchers..." 
+                            class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#7B8189]/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FA4616]">
+                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-[#7B8189]"></i>
                     </div>
                 </div>
-                <div class="flex-grow overflow-y-auto divide-y divide-slate-100 p-2" id="papers-list">
-                    <div class="p-8 text-center text-[#7B8189] flex flex-col items-center justify-center h-full gap-2">
-                        <i data-lucide="arrow-left-circle" class="w-8 h-8 text-[#7B8189]/50"></i>
-                        <p>Select a topic or researcher to view papers</p>
+                <div class="flex-grow overflow-y-auto custom-scrollbar p-2 divide-y divide-slate-100" id="researchers-list">
+                    <div class="p-6 text-center text-xs text-[#7B8189]">Select domain or topic to view researchers</div>
+                </div>
+            </section>
+
+            <!-- Column 3: Papers -->
+            <section class="lg:col-span-4 bg-white border border-[#7B8189]/30 rounded-xl shadow-sm flex flex-col h-[580px] overflow-hidden">
+                <div class="p-3.5 border-b border-[#7B8189]/20 bg-slate-50/50">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="book-open" class="w-4 h-4 text-[#FA4616]"></i> Papers
+                        </h2>
+                        <span class="text-xs font-medium text-[#7B8189]" id="paper-count-badge">0 papers</span>
                     </div>
+                    <p class="text-[11px] text-[#7B8189] truncate" id="papers-context-title">All Publications</p>
+                </div>
+                <div class="flex-grow overflow-y-auto custom-scrollbar p-2 divide-y divide-slate-100" id="papers-list">
+                    <div class="p-6 text-center text-xs text-[#7B8189]">Select context to view papers</div>
                 </div>
             </section>
         </div>
 
-        <!-- Lower Section: Researcher Topic Portfolio Group -->
+        <!-- BOTTOM SECTION: Researcher Topics Portfolio Group -->
         <section class="bg-white border border-[#7B8189]/30 rounded-xl shadow-sm p-5 transition-all" id="researcher-overview-section">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <div class="flex items-center gap-2">
@@ -193,7 +274,6 @@
                 <span class="text-xs bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full font-semibold hidden" id="res-screen-count">-- topics total</span>
             </div>
 
-            <!-- Content Area: Formatted Topic Group -->
             <div id="res-screen-content">
                 <div class="py-8 text-center text-[#7B8189] flex flex-col items-center justify-center gap-2">
                     <i data-lucide="mouse-pointer-click" class="w-8 h-8 text-[#7B8189]/40"></i>
@@ -207,46 +287,57 @@
     <!-- Modal for Paper Abstract -->
     <div id="paper-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 relative max-h-[85vh] flex flex-col border-t-4 border-[#FA4616]">
-            <button id="modal-close" class="absolute top-4 right-4 text-[#7B8189] hover:text-slate-800">
+            <button id="modal-close" onclick="closeModal()" class="absolute top-4 right-4 text-[#7B8189] hover:text-slate-800 cursor-pointer">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
             <span class="text-xs font-semibold uppercase tracking-wide text-[#FA4616] mb-1" id="modal-topic">Topic Name</span>
-            <h3 class="text-xl font-bold text-slate-900 pr-6 mb-3" id="modal-title">Paper Title</h3>
-            
+            <h3 class="text-lg font-bold text-slate-900 pr-6 mb-2" id="modal-title">Paper Title</h3>
             <p class="text-xs font-semibold text-slate-700 mb-2" id="modal-authors">Authors: --</p>
-
             <div class="flex items-center gap-4 text-xs text-[#7B8189] border-y border-slate-100 py-2 mb-4">
                 <span id="modal-year">Year: --</span>
                 <span id="modal-citations">Citations: --</span>
             </div>
-            <div class="flex-grow overflow-y-auto">
+            <div class="flex-grow overflow-y-auto custom-scrollbar">
                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Abstract</h4>
-                <p class="text-sm text-slate-600 leading-relaxed" id="modal-abstract">No abstract available.</p>
+                <p class="text-xs text-slate-600 leading-relaxed" id="modal-abstract">No abstract available.</p>
             </div>
-            <div class="mt-6 pt-4 border-t border-slate-100 flex justify-end">
-                <a id="modal-link" href="#" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-[#FA4616] text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition">
-                    View Source <i data-lucide="external-link" class="w-4 h-4"></i>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                <a id="modal-link" href="#" target="_blank" class="inline-flex items-center gap-2 px-4 py-1.5 bg-[#FA4616] text-white text-xs font-medium rounded-lg hover:bg-orange-700 transition">
+                    View Source <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Application Script -->
+    <!-- Application JavaScript Code -->
     <script>
-        let topicsData = [];
+        let topicsDomainData = [];
         let researcherTopicsData = [];
-        let researcherSummaryData = [];
         let papersData = [];
 
+        let selectedDomain = null;
         let selectedTopicId = null;
         let selectedAuthorId = null;
         let selectedAuthorName = null;
-        let activeResearcherPool = [];
 
-        // Initialize icons
+        let currentActiveResearchers = [];
+        let currentActiveTopics = [];
+
+        // Power BI Metallic Palette Gradients
+        const pbiGradients = [
+            'linear-gradient(135deg, #A85A32 0%, #E09462 50%, #8C4320 100%)', // Metallic Copper
+            'linear-gradient(135deg, #B57E2A 0%, #E8B95A 50%, #946116 100%)', // Metallic Gold
+            'linear-gradient(135deg, #0A2F51 0%, #0E4D82 50%, #061B30 100%)', // Power BI Navy
+            'linear-gradient(135deg, #1C4E80 0%, #3B72A4 50%, #103357 100%)', // Steel Blue
+            'linear-gradient(135deg, #425968 0%, #637E90 50%, #2A3C47 100%)', // Slate Grey
+            'linear-gradient(135deg, #13505B 0%, #0C7489 50%, #093840 100%)', // Teal Metallic
+            'linear-gradient(135deg, #7A3B2E 0%, #B86553 50%, #58261C 100%)', // Mahogany
+            'linear-gradient(135deg, #2E5B88 0%, #5282B4 50%, #1A3A5C 100%)'  // Power BI Classic Blue
+        ];
+
         lucide.createIcons();
 
-        // Custom Instant Floating Tooltip Logic
+        // Custom Tooltip Handlers
         const tooltip = document.getElementById('custom-tooltip');
         const tooltipTitle = document.getElementById('tooltip-title');
         const tooltipBody = document.getElementById('tooltip-body');
@@ -256,11 +347,7 @@
             tooltipTitle.textContent = title;
             tooltipBody.innerHTML = body;
             tooltip.classList.remove('hidden');
-
-            const x = Math.min(e.clientX + 15, window.innerWidth - 320);
-            const y = Math.min(e.clientY + 15, window.innerHeight - 150);
-            tooltip.style.left = `${x}px`;
-            tooltip.style.top = `${y}px`;
+            moveTooltip(e);
         }
 
         function moveTooltip(e) {
@@ -276,37 +363,29 @@
         }
 
         document.addEventListener('mousemove', moveTooltip);
+        window.addEventListener('resize', () => { if (topicsDomainData.length > 0) renderTreemap(); });
 
-        // Load CSV Data (Handles both single or split paper CSV files seamlessly)
+        // Load CSV Data
         window.addEventListener('DOMContentLoaded', () => {
-            const paperFetchers = [
-                fetchCSV('papers_with_topics.csv').catch(() => null),
-                fetchCSV('papers_with_topics_part1.csv').catch(() => null),
-                fetchCSV('papers_with_topics_part2.csv').catch(() => null)
-            ];
-
             Promise.all([
-                fetchCSV('topics.csv'),
+                fetchCSV('topics_with_domain.csv'),
                 fetchCSV('researcher_topics_long.csv'),
-                fetchCSV('researcher_summary.csv'),
-                ...paperFetchers
-            ]).then(([topics, resTopics, resSummary, papersSingle, papersPart1, papersPart2]) => {
-                topicsData = topics;
+                fetchCSV('papers_with_topics.csv')
+            ]).then(([topicsDomain, resTopics, papers]) => {
+                topicsDomainData = topicsDomain;
                 researcherTopicsData = resTopics;
-                researcherSummaryData = resSummary;
-                
-                // Concatenate whichever paper datasets exist
-                let loadedPapers = [];
-                if (papersSingle) loadedPapers = loadedPapers.concat(papersSingle);
-                if (papersPart1) loadedPapers = loadedPapers.concat(papersPart1);
-                if (papersPart2) loadedPapers = loadedPapers.concat(papersPart2);
-                papersData = loadedPapers;
+                papersData = papers;
 
-                activeResearcherPool = getUniqueResearchers(researcherSummaryData);
+                currentActiveTopics = topicsDomainData;
+                currentActiveResearchers = getUniqueResearchers();
 
                 renderSummaryMetrics();
-                renderTopics(topicsData);
-                renderResearchers(activeResearcherPool);
+                renderTreemap();
+                renderTopics(currentActiveTopics);
+                renderResearchers(currentActiveResearchers);
+                renderPapers(papersData);
+
+                setupSearchListeners();
             }).catch(err => {
                 console.error("Error loading CSV files:", err);
             });
@@ -324,81 +403,63 @@
             });
         }
 
-        function paperBelongsToAuthor(paper, authorName, authorId) {
-            if (!paper) return false;
-
-            const authorNamesCol = (paper.kmutt_author_names || paper.authors || '').toLowerCase();
-            const nameMatch = authorName && authorNamesCol.includes(authorName.trim().toLowerCase());
-
-            const authorIdsCol = (paper.kmutt_author_ids || paper.author_ids || '').toLowerCase();
-            const idMatch = authorId && authorIdsCol.includes(authorId.trim().toLowerCase());
-
-            return nameMatch || idMatch;
-        }
-
         function formatRankBadgeLabel(rankNum) {
             const num = parseInt(rankNum);
             if (isNaN(num)) return 'Global Profile';
             return num <= 5 ? `Top Expertise #${num}` : `Expertise #${num}`;
         }
 
-        function getAuthorPortfolioRank(authorName, authorId, topicId) {
-            const authorRecords = researcherTopicsData.filter(rt => 
-                (authorId && rt.author_id === authorId) || 
-                (authorName && rt.author_name && rt.author_name.trim().toLowerCase() === authorName.trim().toLowerCase())
-            );
+        function setupSearchListeners() {
+            const topicInput = document.getElementById('topic-search');
+            const resInput = document.getElementById('researcher-search');
 
-            if (authorRecords.length === 0) return null;
+            if (topicInput) {
+                topicInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    const filtered = currentActiveTopics.filter(t => 
+                        (t.topic_name && t.topic_name.toLowerCase().includes(query)) ||
+                        (t.keywords && t.keywords.toLowerCase().includes(query)) ||
+                        (t.summary && t.summary.toLowerCase().includes(query))
+                    );
+                    renderTopics(filtered);
+                });
+            }
 
-            const map = new Map();
-            authorRecords.forEach(r => {
-                const key = parseInt(r.topic_id);
-                const papers = parseInt(r.n_papers) || 0;
-                map.set(key, (map.get(key) || 0) + papers);
-            });
-
-            const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-            const targetIndex = sorted.findIndex(entry => entry[0] === parseInt(topicId));
-
-            return targetIndex !== -1 ? targetIndex + 1 : null;
+            if (resInput) {
+                resInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    const filtered = currentActiveResearchers.filter(r => 
+                        r.author_name && r.author_name.toLowerCase().includes(query)
+                    );
+                    renderResearchers(filtered);
+                });
+            }
         }
 
-        function getAuthorPortfolioShare(authorName, authorId, topicId) {
-            const authorRecords = researcherTopicsData.filter(rt => 
-                (authorId && rt.author_id === authorId) || 
-                (authorName && rt.author_name && rt.author_name.trim().toLowerCase() === authorName.trim().toLowerCase())
-            );
+        function getUniqueResearchers(filterDomain = null, filterTopicId = null) {
+            let filteredRes = researcherTopicsData;
+            
+            if (filterTopicId !== null) {
+                filteredRes = filteredRes.filter(r => parseInt(r.topic_id) === parseInt(filterTopicId));
+            } else if (filterDomain !== null) {
+                const domainTopicIds = topicsDomainData
+                    .filter(t => t.ford_domain_name === filterDomain)
+                    .map(t => parseInt(t.topic_id));
+                filteredRes = filteredRes.filter(r => domainTopicIds.includes(parseInt(r.topic_id)));
+            }
 
-            if (authorRecords.length === 0) return null;
-
-            let totalPapersAllTopics = 0;
-            let topicPapers = 0;
-
-            authorRecords.forEach(r => {
-                const papers = parseInt(r.n_papers) || 0;
-                totalPapersAllTopics += papers;
-                if (parseInt(r.topic_id) === parseInt(topicId)) {
-                    topicPapers += papers;
-                }
-            });
-
-            return totalPapersAllTopics > 0 ? ((topicPapers / totalPapersAllTopics) * 100).toFixed(1) : null;
-        }
-
-        function getUniqueResearchers(resSummary) {
             const map = new Map();
-
-            resSummary.forEach(r => {
+            filteredRes.forEach(r => {
                 const name = r.author_name ? r.author_name.trim() : 'Unknown';
                 const papers = parseInt(r.n_papers) || 0;
-
+                
                 if (!map.has(name)) {
                     map.set(name, {
                         author_id: r.author_id,
                         author_name: name,
                         n_papers: papers,
-                        share: null,
-                        rank: 'Global Profile'
+                        share: r.share,
+                        rank: r.rank
                     });
                 } else {
                     const existing = map.get(name);
@@ -410,152 +471,248 @@
         }
 
         function renderSummaryMetrics() {
-            const totalTopics = topicsData.length;
-            const totalResearchers = getUniqueResearchers(researcherSummaryData).length;
+            const domains = new Set(topicsDomainData.map(t => t.ford_domain_name).filter(Boolean));
             const totalPapers = papersData.length;
-            const totalCitations = papersData.reduce((acc, p) => acc + (parseInt(p.cited_by || p.cited_by_count) || 0), 0);
+            const totalCitations = papersData.reduce((acc, p) => acc + (parseInt(p.cited_by) || 0), 0);
+            const totalResearchers = getUniqueResearchers().length;
 
-            document.getElementById('stat-topics').textContent = totalTopics.toLocaleString();
+            document.getElementById('stat-domains').textContent = domains.size;
+            document.getElementById('stat-topics').textContent = topicsDomainData.length;
             document.getElementById('stat-researchers').textContent = totalResearchers.toLocaleString();
             document.getElementById('stat-papers').textContent = totalPapers.toLocaleString();
             document.getElementById('stat-citations').textContent = totalCitations.toLocaleString();
         }
 
-        function renderTopics(topics, highlightedIds = []) {
-            const topicsListContainer = document.getElementById('topics-list');
-            document.getElementById('topic-count-badge').textContent = `${topics.length} topics`;
+        // Power BI Squarified Treemap Layout Engine with Dynamic Text Size Scaling
+        function renderTreemap() {
+            const container = document.getElementById('treemap-container');
+            if (!container) return;
 
-            if (topics.length === 0) {
-                topicsListContainer.innerHTML = `<div class="p-6 text-center text-[#7B8189]">No matching topics found</div>`;
-                return;
-            }
+            const width = container.clientWidth || 880;
+            const height = container.clientHeight || 480;
 
-            topicsListContainer.innerHTML = topics.map(t => {
-                const isSelected = selectedTopicId == t.topic_id;
-                const isAssociated = highlightedIds.includes(parseInt(t.topic_id));
-                const summaryText = (t.summary || t.keywords || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                const nameText = t.topic_name.replace(/'/g, "\\'");
-                
-                let cardStyle = 'border-transparent';
-                if (isSelected) {
-                    cardStyle = 'bg-amber-50 border-[#FFC72C] shadow-sm';
-                } else if (isAssociated) {
-                    cardStyle = 'bg-orange-50/60 border-[#FA4616]/40';
-                }
+            const domainCounts = {};
+            topicsDomainData.forEach(t => {
+                const domain = t.ford_domain_name || 'Other';
+                const count = parseInt(t.n_papers) || 0;
+                domainCounts[domain] = (domainCounts[domain] || 0) + count;
+            });
+
+            const items = Object.entries(domainCounts)
+                .map(([name, value]) => ({ name, value }))
+                .sort((a, b) => b.value - a.value);
+
+            const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+            if (totalValue === 0) return;
+
+            const rects = computeSquarifiedTreemap(items, 0, 0, width, height, totalValue);
+
+            container.innerHTML = rects.map((r, i) => {
+                const isSelected = selectedDomain === r.name;
+                const bgGradient = pbiGradients[i % pbiGradients.length];
+                const pct = ((r.value / totalValue) * 100).toFixed(1);
+
+                // Dynamic font sizing based on tile area
+                const fontSize = r.w > 120 && r.h > 70 ? '11px' : (r.w > 70 && r.h > 45 ? '10px' : '9px');
+                const showSubtext = r.h > 40 && r.w > 55;
 
                 return `
-                    <div onclick="selectTopic(${t.topic_id})" id="topic-item-${t.topic_id}" 
-                         onmouseenter="showTooltip(event, '${nameText}', '${summaryText}')"
-                         onmouseleave="hideTooltip()"
-                         class="topic-card p-3 rounded-lg cursor-pointer transition hover:bg-orange-50 mb-1 border ${cardStyle}">
-                        <div class="flex items-start justify-between">
-                            <h3 class="font-semibold text-slate-800 text-sm leading-snug">${t.topic_name}</h3>
-                            <span class="text-xs bg-[#FFC72C]/30 text-amber-900 px-2 py-0.5 rounded-full font-semibold ml-2 shrink-0">${t.n_papers} papers</span>
-                        </div>
-                        <p class="text-xs text-[#7B8189] mt-1 line-clamp-2">${t.summary || t.keywords || ''}</p>
+                    <div onclick="selectDomain('${r.name.replace(/'/g, "\\'")}')"
+                         class="pbi-treemap-tile ${isSelected ? 'selected' : ''}"
+                         style="left: ${r.x}px; top: ${r.y}px; width: ${r.w}px; height: ${r.h}px; background: ${bgGradient};"
+                         title="${r.name}: ${r.value.toLocaleString()} papers (${pct}%)">
+                        <div class="font-bold leading-snug drop-shadow-sm line-clamp-3" style="font-size: ${fontSize};">${r.name}</div>
+                        ${showSubtext ? `<div class="opacity-90 font-medium mt-0.5" style="font-size: ${fontSize === '11px' ? '10px' : '8.5px'};">${r.value.toLocaleString()} (${pct}%)</div>` : ''}
                     </div>
                 `;
             }).join('');
         }
 
-        document.getElementById('topic-search').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = topicsData.filter(t => 
-                (t.topic_name && t.topic_name.toLowerCase().includes(query)) ||
-                (t.keywords && t.keywords.toLowerCase().includes(query)) ||
-                (t.summary && t.summary.toLowerCase().includes(query))
-            );
-            renderTopics(filtered);
-        });
+        // Squarified Treemap Layout Implementation
+        function computeSquarifiedTreemap(items, x, y, w, h, total) {
+            let rects = [];
+            let remaining = [...items];
+            let curX = x, curY = y, curW = w, curH = h;
 
-        document.getElementById('researcher-search').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const poolToSearch = selectedTopicId !== null ? activeResearcherPool : getUniqueResearchers(researcherSummaryData);
-            
-            const filtered = poolToSearch.filter(r => 
-                r.author_name && r.author_name.toLowerCase().includes(query)
-            );
-            
-            document.getElementById('reset-global-btn').classList.remove('hidden');
-            renderResearchers(filtered);
-        });
+            while (remaining.length > 0) {
+                let row = [];
+                let isHorizontal = curW >= curH;
+                let side = isHorizontal ? curH : curW;
+                let containerArea = curW * curH;
+                let remValueTotal = remaining.reduce((s, item) => s + item.value, 0);
 
-        function selectTopic(topicId) {
-            selectedTopicId = topicId;
-            hideTooltip();
+                row.push(remaining.shift());
+                while (remaining.length > 0) {
+                    let next = remaining[0];
+                    if (worstAspectRatio([...row, next], side, containerArea, remValueTotal) <= worstAspectRatio(row, side, containerArea, remValueTotal)) {
+                        row.push(remaining.shift());
+                    } else {
+                        break;
+                    }
+                }
 
-            document.getElementById('reset-global-btn').classList.remove('hidden');
-            const selectedTopic = topicsData.find(t => t.topic_id == topicId);
-            document.getElementById('selected-topic-title').textContent = selectedTopic ? selectedTopic.topic_name : 'Selected Topic';
+                let rowValue = row.reduce((s, item) => s + item.value, 0);
+                let rowSize = isHorizontal ? (curW * (rowValue / remValueTotal)) : (curH * (rowValue / remValueTotal));
 
-            if (selectedAuthorName) {
-                let researcherPapers = papersData.filter(p => paperBelongsToAuthor(p, selectedAuthorName, selectedAuthorId));
-                researcherPapers = researcherPapers.filter(p => parseInt(p.topic) === parseInt(topicId));
-                researcherPapers.sort((a, b) => (parseInt(b.cited_by || b.cited_by_count) || 0) - (parseInt(a.cited_by || a.cited_by_count) || 0));
+                let offset = 0;
+                row.forEach(item => {
+                    let itemRatio = item.value / rowValue;
+                    let itemSize = side * itemRatio;
 
-                const authorTopicIds = Array.from(new Set(papersData.filter(p => paperBelongsToAuthor(p, selectedAuthorName, selectedAuthorId)).map(p => parseInt(p.topic)))).filter(id => !isNaN(id));
-                const researcherTopicsOnly = topicsData.filter(t => authorTopicIds.includes(parseInt(t.topic_id)));
+                    if (isHorizontal) {
+                        rects.push({ name: item.name, value: item.value, x: curX, y: curY + offset, w: rowSize, h: itemSize });
+                        offset += itemSize;
+                    } else {
+                        rects.push({ name: item.name, value: item.value, x: curX + offset, y: curY, w: itemSize, h: rowSize });
+                        offset += itemSize;
+                    }
+                });
 
-                renderTopics(researcherTopicsOnly, [parseInt(topicId)]);
-                renderPapers(researcherPapers);
-                return;
+                if (isHorizontal) {
+                    curX += rowSize;
+                    curW -= rowSize;
+                } else {
+                    curY += rowSize;
+                    curH -= rowSize;
+                }
             }
+            return rects;
+        }
 
+        function worstAspectRatio(row, side, containerArea, totalValue) {
+            let rowSum = row.reduce((s, item) => s + item.value, 0);
+            if (rowSum === 0 || side === 0) return Infinity;
+
+            let rowArea = containerArea * (rowSum / totalValue);
+            let rowThickness = rowArea / side;
+
+            let maxAspect = 0;
+            row.forEach(item => {
+                let itemArea = containerArea * (item.value / totalValue);
+                let itemLength = itemArea / rowThickness;
+                let aspect = Math.max(rowThickness / itemLength, itemLength / rowThickness);
+                if (aspect > maxAspect) maxAspect = aspect;
+            });
+
+            return maxAspect;
+        }
+
+        function selectDomain(domainName) {
+            selectedDomain = domainName;
+            selectedTopicId = null;
             selectedAuthorId = null;
             selectedAuthorName = null;
 
-            const matches = researcherTopicsData.filter(rt => rt.topic_id == topicId);
-            const grouped = new Map();
-            matches.forEach(r => {
-                const name = r.author_name.trim();
-                if (!grouped.has(name)) {
-                    grouped.set(name, { ...r });
-                } else {
-                    const existing = grouped.get(name);
-                    existing.n_papers = (parseInt(existing.n_papers) || 0) + (parseInt(r.n_papers) || 0);
-                }
-            });
+            renderTreemap();
 
-            activeResearcherPool = Array.from(grouped.values()).sort((a, b) => b.n_papers - a.n_papers);
+            document.getElementById('domain-badge').textContent = 'Selected Domain';
+            document.getElementById('domain-summary-title').textContent = domainName;
+            document.getElementById('domain-summary-body').textContent = 
+                `Summary for "${domainName}" is coming soon. The statistics below show aggregated totals across topic clusters.`;
 
-            renderTopics(topicsData, [parseInt(topicId)]);
-            renderResearchers(activeResearcherPool);
-            displayTopicPapers();
+            const domainTopics = topicsDomainData.filter(t => t.ford_domain_name === domainName);
+            const domainTopicIds = domainTopics.map(t => parseInt(t.topic_id));
+            const domainPapers = papersData.filter(p => domainTopicIds.includes(parseInt(p.topic)));
+            
+            currentActiveTopics = domainTopics;
+            currentActiveResearchers = getUniqueResearchers(domainName);
+
+            document.getElementById('domain-topic-count').textContent = domainTopics.length;
+            document.getElementById('domain-paper-count').textContent = domainPapers.length.toLocaleString();
+            document.getElementById('domain-res-count').textContent = currentActiveResearchers.length;
+            document.getElementById('domain-stats-box').classList.remove('hidden');
+
+            document.getElementById('papers-context-title').textContent = `Publications in ${domainName}`;
+
+            renderTopics(currentActiveTopics);
+            renderResearchers(currentActiveResearchers);
+            renderPapers(domainPapers);
+            resetResearcherOverviewScreen();
+        }
+
+        function renderTopics(topics) {
+            const container = document.getElementById('topics-list');
+            document.getElementById('topic-count-badge').textContent = `${topics.length} topics`;
+
+            if (topics.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-xs text-[#7B8189]">No topics found</div>`;
+                return;
+            }
+
+            container.innerHTML = topics.map(t => {
+                const isSelected = selectedTopicId == t.topic_id;
+                const summaryText = (t.summary || t.keywords || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const nameText = t.topic_name.replace(/'/g, "\\'");
+
+                return `
+                    <div onclick="selectTopic(${t.topic_id})" 
+                         onmouseenter="showTooltip(event, '${nameText}', '${summaryText}')"
+                         onmouseleave="hideTooltip()"
+                         class="p-2.5 rounded-lg cursor-pointer transition mb-1 border ${isSelected ? 'bg-amber-50 border-[#FFC72C] shadow-2xs' : 'border-transparent hover:bg-orange-50/60'}">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-slate-800 text-xs leading-snug">${t.topic_name}</h3>
+                            <span class="text-[10px] bg-[#FFC72C]/30 text-amber-900 px-1.5 py-0.5 rounded-full font-semibold ml-1 shrink-0">${t.n_papers}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectTopic(topicId) {
+            selectedTopicId = topicId;
+            selectedAuthorId = null;
+            selectedAuthorName = null;
+
+            const topicObj = topicsDomainData.find(t => t.topic_id == topicId);
+            
+            if (topicObj && !selectedDomain) {
+                selectedDomain = topicObj.ford_domain_name;
+                renderTreemap();
+            }
+
+            currentActiveResearchers = getUniqueResearchers(null, topicId);
+            const papersInTopic = papersData.filter(p => parseInt(p.topic) === parseInt(topicId));
+
+            currentActiveTopics = selectedDomain ? topicsDomainData.filter(t => t.ford_domain_name === selectedDomain) : topicsDomainData;
+
+            document.getElementById('papers-context-title').textContent = topicObj ? `Publications in: ${topicObj.topic_name}` : `Publications in Topic #${topicId}`;
+
+            renderTopics(currentActiveTopics);
+            renderResearchers(currentActiveResearchers);
+            renderPapers(papersInTopic);
             resetResearcherOverviewScreen();
         }
 
         function renderResearchers(researchers) {
-            const resListContainer = document.getElementById('researchers-list');
+            const container = document.getElementById('researchers-list');
             document.getElementById('researcher-count-badge').textContent = `${researchers.length} researchers`;
 
             if (researchers.length === 0) {
-                resListContainer.innerHTML = `<div class="p-6 text-center text-[#7B8189]">No researchers found</div>`;
+                container.innerHTML = `<div class="p-6 text-center text-xs text-[#7B8189]">No researchers found</div>`;
                 return;
             }
 
-            resListContainer.innerHTML = researchers.map(r => {
+            container.innerHTML = researchers.map(r => {
+                const isSelected = selectedAuthorId === r.author_id;
+
                 let displayRankText = 'Global Profile';
                 let displayShareText = 'Global Profile';
 
-                if (selectedTopicId !== null) {
-                    const portfolioRank = getAuthorPortfolioRank(r.author_name, r.author_id, selectedTopicId);
-                    const portfolioShare = getAuthorPortfolioShare(r.author_name, r.author_id, selectedTopicId);
-
-                    displayRankText = portfolioRank ? formatRankBadgeLabel(portfolioRank) : formatRankBadgeLabel(r.rank);
-                    displayShareText = portfolioShare ? `Topic Share: ${portfolioShare}%` : (r.share ? `Topic Share: ${(parseFloat(r.share) * 100).toFixed(1)}%` : 'Global Profile');
-                } else if (r.rank && r.rank !== 'Global Profile') {
-                    displayRankText = formatRankBadgeLabel(r.rank.toString().replace('Rank #', ''));
-                    displayShareText = r.share ? `Topic Share: ${(parseFloat(r.share) * 100).toFixed(1)}%` : 'Global Profile';
+                if (r.share) {
+                    displayShareText = `Topic Share: ${(parseFloat(r.share) * 100).toFixed(1)}%`;
+                }
+                if (r.rank) {
+                    displayRankText = formatRankBadgeLabel(r.rank);
                 }
 
                 return `
-                    <div onclick="selectResearcher('${r.author_id}', '${r.author_name.replace(/'/g, "\\'")}')" id="res-item-${encodeURIComponent(r.author_id)}" 
-                         class="researcher-card p-3 rounded-lg cursor-pointer transition hover:bg-orange-50 mb-1 border border-transparent ${selectedAuthorId === r.author_id ? 'bg-amber-50 border-[#FFC72C] shadow-sm' : ''}">
+                    <div onclick="selectResearcher('${r.author_id}', '${r.author_name.replace(/'/g, "\\'")}')" 
+                         class="p-2.5 rounded-lg cursor-pointer transition mb-1 border ${isSelected ? 'bg-amber-50 border-[#FFC72C] shadow-2xs' : 'border-transparent hover:bg-orange-50/60'}">
                         <div class="flex items-center justify-between">
-                            <h4 class="font-semibold text-slate-800 text-sm">${r.author_name}</h4>
-                            <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-medium">${r.n_papers} papers</span>
+                            <h4 class="font-semibold text-slate-800 text-xs">${r.author_name}</h4>
+                            <span class="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium">${r.n_papers} papers</span>
                         </div>
-                        <div class="flex items-center justify-between mt-2 text-xs text-[#7B8189]">
+                        <div class="flex items-center justify-between mt-1 text-[10px] text-[#7B8189]">
                             <span>${displayShareText}</span>
                             <span class="font-semibold text-[#FA4616]">${displayRankText}</span>
                         </div>
@@ -567,38 +724,53 @@
         function selectResearcher(authorId, authorName) {
             selectedAuthorId = authorId;
             selectedAuthorName = authorName;
-            hideTooltip();
 
-            document.getElementById('reset-global-btn').classList.remove('hidden');
+            renderResearchers(currentActiveResearchers);
 
-            document.querySelectorAll('.researcher-card').forEach(el => el.classList.remove('bg-amber-50', 'border-[#FFC72C]', 'shadow-sm'));
-            const activeEl = document.getElementById(`res-item-${encodeURIComponent(authorId)}`);
-            if (activeEl) activeEl.classList.add('bg-amber-50', 'border-[#FFC72C]', 'shadow-sm');
-
-            document.getElementById('selected-researcher-title').textContent = authorName;
-            document.getElementById('reset-researcher-btn').classList.remove('hidden');
-
-            let researcherPapers = papersData.filter(p => paperBelongsToAuthor(p, authorName, authorId));
+            // Filter papers by Author AND Selected Topic (if topic is active)
+            let authorPapers = papersData.filter(p => {
+                const names = (p.kmutt_author_names || '').toLowerCase();
+                const ids = (p.kmutt_author_ids || '').toLowerCase();
+                return names.includes(authorName.toLowerCase()) || ids.includes(authorId.toLowerCase());
+            });
 
             if (selectedTopicId !== null) {
-                researcherPapers = researcherPapers.filter(p => parseInt(p.topic) === parseInt(selectedTopicId));
+                authorPapers = authorPapers.filter(p => parseInt(p.topic) === parseInt(selectedTopicId));
+                document.getElementById('papers-context-title').textContent = `${authorName} (Filtered by Selected Topic)`;
+            } else {
+                document.getElementById('papers-context-title').textContent = `All Publications by ${authorName}`;
             }
 
-            researcherPapers.sort((a, b) => (parseInt(b.cited_by || b.cited_by_count) || 0) - (parseInt(a.cited_by || a.cited_by_count) || 0));
+            renderPapers(authorPapers);
 
-            const authorTopicIds = Array.from(new Set(papersData.filter(p => paperBelongsToAuthor(p, selectedAuthorName, selectedAuthorId)).map(p => parseInt(p.topic)))).filter(id => !isNaN(id));
-            const researcherTopicsOnly = topicsData.filter(t => authorTopicIds.includes(parseInt(t.topic_id)));
-
-            renderTopics(researcherTopicsOnly, selectedTopicId ? [parseInt(selectedTopicId)] : authorTopicIds);
-            renderPapers(researcherPapers);
-
-            const authorTopics = researcherTopicsData.filter(rt => rt.author_id === authorId || rt.author_name.trim().toLowerCase() === authorName.trim().toLowerCase());
+            const authorTopics = researcherTopicsData.filter(rt => 
+                rt.author_id === authorId || 
+                (rt.author_name && rt.author_name.trim().toLowerCase() === authorName.trim().toLowerCase())
+            );
             renderResearcherOverviewScreen(authorId, authorName, authorTopics);
         }
 
-        function filterByAuthorAndTopic(topicId) {
-            if (!selectedAuthorName) return;
-            selectTopic(topicId);
+        function renderPapers(papers) {
+            const container = document.getElementById('papers-list');
+            document.getElementById('paper-count-badge').textContent = `${papers.length} papers`;
+
+            if (papers.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-xs text-[#7B8189]">No papers found</div>`;
+                return;
+            }
+
+            container.innerHTML = papers.slice(0, 100).map((p, idx) => `
+                <div onclick="openPaperModal(${idx})" class="p-2.5 rounded-lg cursor-pointer transition mb-1 border border-slate-100 hover:border-[#FA4616] hover:bg-slate-50">
+                    <h5 class="font-semibold text-slate-800 text-xs leading-snug line-clamp-2">${p.title}</h5>
+                    <div class="flex items-center gap-3 mt-1 text-[10px] text-[#7B8189]">
+                        <span>${p.year ? Math.round(p.year) : 'N/A'}</span>
+                        <span class="flex items-center gap-0.5 text-[#FA4616]"><i data-lucide="quote" class="w-3 h-3"></i> ${p.cited_by || 0} citations</span>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+            window.currentActivePapers = papers;
         }
 
         function renderResearcherOverviewScreen(authorId, authorName, authorTopics = []) {
@@ -614,7 +786,7 @@
 
             if (authorTopics.length === 0) {
                 countEl.classList.add('hidden');
-                contentEl.innerHTML = `<p class="text-sm text-[#7B8189]">No topic details available for this researcher.</p>`;
+                contentEl.innerHTML = `<p class="text-xs text-[#7B8189]">No topic details available for this researcher.</p>`;
                 return;
             }
 
@@ -642,7 +814,7 @@
                 .sort((a, b) => b.n_papers - a.n_papers)
                 .map((t, index) => {
                     const share = totalResearcherPapers > 0 ? (t.n_papers / totalResearcherPapers * 100).toFixed(1) : 0;
-                    const fullTopicObj = topicsData.find(td => td.topic_id == t.topic_id);
+                    const fullTopicObj = topicsDomainData.find(td => td.topic_id == t.topic_id);
                     return {
                         ...t,
                         rank: index + 1,
@@ -664,7 +836,7 @@
                         const nameText = at.topic_name.replace(/'/g, "\\'");
 
                         return `
-                            <div onclick="filterByAuthorAndTopic(${at.topic_id})" 
+                            <div onclick="selectTopic(${at.topic_id})" 
                                  onmouseenter="showTooltip(event, '${nameText}', '${summaryText}')"
                                  onmouseleave="hideTooltip()"
                                  class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3 shadow-2xs hover:bg-orange-50 hover:border-[#FA4616] cursor-pointer transition ${selectedTopicId == at.topic_id ? 'bg-amber-100/70 border-[#FFC72C] ring-2 ring-[#FFC72C]/50' : ''}">
@@ -692,108 +864,100 @@
             lucide.createIcons();
         }
 
-        function displayTopicPapers() {
-            document.getElementById('selected-researcher-title').textContent = 'All Topic Papers';
-            document.getElementById('reset-researcher-btn').classList.add('hidden');
+        function resetTopicSelection() {
+            selectedTopicId = null;
+            const topicInput = document.getElementById('topic-search');
+            if (topicInput) topicInput.value = '';
 
-            const papersInTopic = papersData.filter(p => parseInt(p.topic) === parseInt(selectedTopicId));
-            papersInTopic.sort((a, b) => (parseInt(b.cited_by || b.cited_by_count) || 0) - (parseInt(a.cited_by || a.cited_by_count) || 0));
-
-            renderPapers(papersInTopic);
-        }
-
-        function clearResearcherFilter() {
-            selectedAuthorId = null;
-            selectedAuthorName = null;
-            hideTooltip();
-            document.querySelectorAll('.researcher-card').forEach(el => el.classList.remove('bg-amber-50', 'border-[#FFC72C]', 'shadow-sm'));
-            
-            if (selectedTopicId !== null) {
-                displayTopicPapers();
+            if (selectedDomain) {
+                currentActiveTopics = topicsDomainData.filter(t => t.ford_domain_name === selectedDomain);
+                currentActiveResearchers = getUniqueResearchers(selectedDomain);
+                const domainTopicIds = currentActiveTopics.map(t => parseInt(t.topic_id));
+                const domainPapers = papersData.filter(p => domainTopicIds.includes(parseInt(p.topic)));
+                renderPapers(domainPapers);
+                document.getElementById('papers-context-title').textContent = `Publications in ${selectedDomain}`;
             } else {
-                renderPapers([]);
-                document.getElementById('selected-researcher-title').textContent = 'All Papers';
-                document.getElementById('reset-researcher-btn').classList.add('hidden');
+                currentActiveTopics = topicsDomainData;
+                currentActiveResearchers = getUniqueResearchers();
+                renderPapers(papersData);
+                document.getElementById('papers-context-title').textContent = 'All Publications';
             }
 
-            renderTopics(topicsData);
+            renderTopics(currentActiveTopics);
+            renderResearchers(currentActiveResearchers);
+            if (!selectedAuthorId) resetResearcherOverviewScreen();
+        }
+
+        function resetResearcherSelection() {
+            selectedAuthorId = null;
+            selectedAuthorName = null;
+            const resInput = document.getElementById('researcher-search');
+            if (resInput) resInput.value = '';
+
+            currentActiveResearchers = getUniqueResearchers(selectedDomain, selectedTopicId);
+            renderResearchers(currentActiveResearchers);
+
+            if (selectedTopicId) {
+                const papersInTopic = papersData.filter(p => parseInt(p.topic) === parseInt(selectedTopicId));
+                const topicObj = topicsDomainData.find(t => t.topic_id == selectedTopicId);
+                renderPapers(papersInTopic);
+                document.getElementById('papers-context-title').textContent = topicObj ? `Publications in: ${topicObj.topic_name}` : `Publications in Topic #${selectedTopicId}`;
+            } else if (selectedDomain) {
+                const domainTopics = topicsDomainData.filter(t => t.ford_domain_name === selectedDomain);
+                const domainTopicIds = domainTopics.map(t => parseInt(t.topic_id));
+                const domainPapers = papersData.filter(p => domainTopicIds.includes(parseInt(p.topic)));
+                renderPapers(domainPapers);
+                document.getElementById('papers-context-title').textContent = `Publications in ${selectedDomain}`;
+            } else {
+                renderPapers(papersData);
+                document.getElementById('papers-context-title').textContent = 'All Publications';
+            }
+
             resetResearcherOverviewScreen();
         }
 
         function resetAllFilters() {
+            selectedDomain = null;
             selectedTopicId = null;
             selectedAuthorId = null;
             selectedAuthorName = null;
-            hideTooltip();
 
-            document.getElementById('selected-topic-title').textContent = 'Global Search Mode';
-            document.getElementById('selected-researcher-title').textContent = 'All Papers';
-            document.getElementById('researcher-search').value = '';
-            document.getElementById('topic-search').value = '';
-            document.getElementById('reset-global-btn').classList.add('hidden');
-            document.getElementById('reset-researcher-btn').classList.add('hidden');
+            document.getElementById('domain-badge').textContent = 'All Domains';
+            document.getElementById('domain-summary-title').textContent = 'Select Expertise Area';
+            document.getElementById('domain-summary-body').textContent = 'Selecting an expertise domain will filter the topic lists, researchers, and publications below.';
+            document.getElementById('domain-stats-box').classList.add('hidden');
 
-            activeResearcherPool = getUniqueResearchers(researcherSummaryData);
+            const topicInput = document.getElementById('topic-search');
+            const resInput = document.getElementById('researcher-search');
+            if (topicInput) topicInput.value = '';
+            if (resInput) resInput.value = '';
 
-            renderTopics(topicsData);
-            renderResearchers(activeResearcherPool);
-            renderPapers([]);
+            currentActiveTopics = topicsDomainData;
+            currentActiveResearchers = getUniqueResearchers();
+
+            document.getElementById('papers-context-title').textContent = 'All Publications';
+
+            renderTreemap();
+            renderTopics(currentActiveTopics);
+            renderResearchers(currentActiveResearchers);
+            renderPapers(papersData);
             resetResearcherOverviewScreen();
-        }
-
-        function renderPapers(papers) {
-            const papersListContainer = document.getElementById('papers-list');
-            document.getElementById('paper-count-badge').textContent = `${papers.length} papers`;
-
-            if (papers.length === 0) {
-                papersListContainer.innerHTML = `<div class="p-6 text-center text-[#7B8189]">No papers found</div>`;
-                return;
-            }
-
-            papersListContainer.innerHTML = papers.map((p, idx) => `
-                <div onclick="openPaperModal(${idx})" class="p-3 rounded-lg cursor-pointer transition hover:bg-slate-50 mb-1 border border-slate-200 hover:border-[#FA4616]">
-                    <h5 class="font-semibold text-slate-800 text-sm leading-snug line-clamp-2">${p.title}</h5>
-                    <div class="flex items-center gap-3 mt-2 text-xs text-[#7B8189]">
-                        <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> ${p.year || p.publication_year ? Math.round(p.year || p.publication_year) : 'N/A'}</span>
-                        <span class="flex items-center gap-1"><i data-lucide="quote" class="w-3.5 h-3.5 text-[#FA4616]"></i> ${p.cited_by || p.cited_by_count || 0} citations</span>
-                    </div>
-                </div>
-            `).join('');
-
-            lucide.createIcons();
-            window.currentActivePapers = papers;
         }
 
         function openPaperModal(index) {
             const paper = window.currentActivePapers[index];
             if (!paper) return;
 
-            const selectedTopic = topicsData.find(t => t.topic_id == selectedTopicId || t.topic_id == paper.topic);
-
-            document.getElementById('modal-topic').textContent = selectedTopic ? selectedTopic.topic_name : `Topic ${paper.topic}`;
+            document.getElementById('modal-topic').textContent = `Topic ID ${paper.topic}`;
             document.getElementById('modal-title').textContent = paper.title;
-            document.getElementById('modal-authors').textContent = `Authors: ${paper.kmutt_author_names || paper.authors || 'N/A'}`;
-            document.getElementById('modal-year').textContent = `Year: ${paper.year || paper.publication_year ? Math.round(paper.year || paper.publication_year) : 'N/A'}`;
-            document.getElementById('modal-citations').textContent = `Citations: ${paper.cited_by || paper.cited_by_count || 0}`;
-            document.getElementById('modal-abstract').textContent = paper.abstract || 'No abstract available for this publication.';
-            
-            const linkBtn = document.getElementById('modal-link');
-            const targetLink = paper.doi || paper.work_id;
-            if (targetLink) {
-                linkBtn.href = targetLink;
-                linkBtn.style.display = 'inline-flex';
-            } else {
-                linkBtn.style.display = 'none';
-            }
+            document.getElementById('modal-authors').textContent = `Authors: ${paper.kmutt_author_names || 'N/A'}`;
+            document.getElementById('modal-year').textContent = `Year: ${paper.year ? Math.round(paper.year) : 'N/A'}`;
+            document.getElementById('modal-citations').textContent = `Citations: ${paper.cited_by || 0}`;
+            document.getElementById('modal-abstract').textContent = paper.abstract || 'No abstract available.';
 
             document.getElementById('paper-modal').classList.remove('hidden');
             document.getElementById('paper-modal').classList.add('flex');
         }
-
-        document.getElementById('modal-close').addEventListener('click', closeModal);
-        document.getElementById('paper-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'paper-modal') closeModal();
-        });
 
         function closeModal() {
             document.getElementById('paper-modal').classList.add('hidden');
