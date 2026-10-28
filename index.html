@@ -163,12 +163,14 @@
                         <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1">
                             <i data-lucide="info" class="w-3.5 h-3.5 text-[#FA4616]"></i> Domain Summary
                         </h3>
-                        <span id="domain-badge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">All Domains</span>
+                        <span id="domain-badge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium hidden"></span>
                     </div>
                     <h4 id="domain-summary-title" class="text-base font-bold text-[#FA4616] mb-2 leading-tight">Select Expertise Area</h4>
-                    <p id="domain-summary-body" class="text-[11px] text-slate-500 italic leading-relaxed">
-                        Selecting an expertise domain will filter the topic lists, researchers, and publications below.
-                    </p>
+                    <div id="domain-summary-body">
+                        <p class="text-[11px] text-slate-500 italic leading-relaxed">
+                            Selecting an expertise domain will filter the topic lists, researchers, and publications below.
+                        </p>
+                    </div>
                 </div>
                 
                 <div id="domain-stats-box" class="mt-4 pt-2 border-t border-slate-100 grid grid-cols-1 gap-2 text-center bg-slate-50 p-2 rounded-lg hidden">
@@ -314,6 +316,7 @@
         let topicsDomainData = [];
         let researcherTopicsData = [];
         let papersData = [];
+        let domainSummariesData = {};
 
         let selectedDomain = null;
         let selectedTopicId = null;
@@ -365,16 +368,28 @@
         document.addEventListener('mousemove', moveTooltip);
         window.addEventListener('resize', () => { if (topicsDomainData.length > 0) renderTreemap(); });
 
-        // Load CSV Data
+        // Load All CSV Data
         window.addEventListener('DOMContentLoaded', () => {
             Promise.all([
                 fetchCSV('topics_with_domain.csv'),
                 fetchCSV('researcher_topics_long.csv'),
-                fetchCSV('papers_with_topics.csv')
-            ]).then(([topicsDomain, resTopics, papers]) => {
+                fetchCSV('papers_with_topics.csv'),
+                fetchCSV('domain_summaries_checkpoint.csv')
+            ]).then(([topicsDomain, resTopics, papers, summaries]) => {
                 topicsDomainData = topicsDomain;
                 researcherTopicsData = resTopics;
                 papersData = papers;
+
+                // Parse and index domain summaries by domain name
+                domainSummariesData = {};
+                summaries.forEach(row => {
+                    const domainName = row.ford_domain_name ? row.ford_domain_name.trim() : null;
+                    if (domainName && domainName !== 'ford_domain_name') {
+                        domainSummariesData[domainName] = {
+                            summary: row.domain_summary ? row.domain_summary.trim() : ''
+                        };
+                    }
+                });
 
                 currentActiveTopics = topicsDomainData;
                 currentActiveResearchers = getUniqueResearchers();
@@ -605,10 +620,24 @@
 
             renderTreemap();
 
-            document.getElementById('domain-badge').textContent = 'Selected Domain';
-            document.getElementById('domain-summary-title').textContent = domainName;
-            document.getElementById('domain-summary-body').textContent = 
-                `Summary for "${domainName}" is coming soon. The statistics below show aggregated totals across topic clusters.`;
+            // Hide domain badge completely (removes FORD code display)
+            const badgeEl = document.getElementById('domain-badge');
+            badgeEl.classList.add('hidden');
+            badgeEl.textContent = '';
+
+            const info = domainSummariesData[domainName];
+
+            if (info) {
+                document.getElementById('domain-summary-title').textContent = domainName;
+                document.getElementById('domain-summary-body').innerHTML = `
+                    <p class="text-[11px] text-slate-600 mb-2 leading-relaxed">${info.summary}</p>
+                `;
+            } else {
+                document.getElementById('domain-summary-title').textContent = domainName;
+                document.getElementById('domain-summary-body').innerHTML = `
+                    <p class="text-[11px] text-slate-500 italic leading-relaxed">Summary for "${domainName}" is coming soon.</p>
+                `;
+            }
 
             const domainTopics = topicsDomainData.filter(t => t.ford_domain_name === domainName);
             const domainTopicIds = domainTopics.map(t => parseInt(t.topic_id));
@@ -922,9 +951,16 @@
             selectedAuthorId = null;
             selectedAuthorName = null;
 
-            document.getElementById('domain-badge').textContent = 'All Domains';
+            const badgeEl = document.getElementById('domain-badge');
+            badgeEl.classList.add('hidden');
+            badgeEl.textContent = '';
+
             document.getElementById('domain-summary-title').textContent = 'Select Expertise Area';
-            document.getElementById('domain-summary-body').textContent = 'Selecting an expertise domain will filter the topic lists, researchers, and publications below.';
+            document.getElementById('domain-summary-body').innerHTML = `
+                <p class="text-[11px] text-slate-500 italic leading-relaxed">
+                    Selecting an expertise domain will filter the topic lists, researchers, and publications below.
+                </p>
+            `;
             document.getElementById('domain-stats-box').classList.add('hidden');
 
             const topicInput = document.getElementById('topic-search');
