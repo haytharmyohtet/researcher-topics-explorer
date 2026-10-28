@@ -692,6 +692,10 @@
             selectedAuthorId = null;
             selectedAuthorName = null;
 
+            // Preserve scroll position of topics panel
+            const topicsListContainer = document.getElementById('topics-list');
+            const savedTopicsScroll = topicsListContainer ? topicsListContainer.scrollTop : 0;
+
             const topicObj = topicsDomainData.find(t => t.topic_id == topicId);
             
             if (topicObj && !selectedDomain) {
@@ -707,6 +711,8 @@
             document.getElementById('papers-context-title').textContent = topicObj ? `Publications in: ${topicObj.topic_name}` : `Publications in Topic #${topicId}`;
 
             renderTopics(currentActiveTopics);
+            if (topicsListContainer) topicsListContainer.scrollTop = savedTopicsScroll;
+
             renderResearchers(currentActiveResearchers);
             renderPapers(papersInTopic);
             resetResearcherOverviewScreen();
@@ -754,7 +760,15 @@
             selectedAuthorId = authorId;
             selectedAuthorName = authorName;
 
+            // Preserve scroll position of researchers panel
+            const resListContainer = document.getElementById('researchers-list');
+            const savedResScroll = resListContainer ? resListContainer.scrollTop : 0;
+
             renderResearchers(currentActiveResearchers);
+
+            if (resListContainer) {
+                resListContainer.scrollTop = savedResScroll;
+            }
 
             // Filter papers by Author AND Selected Topic (if topic is active)
             let authorPapers = papersData.filter(p => {
